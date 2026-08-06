@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>콕끼오 대회 아카이브</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script>
+  /* Add the js class as early as possible (render-blocking, in <head>) so the
+     CSS below only hides content for the initial animated state when JS can
+     actually drive that animation. Without JS, none of the opacity:0 rules
+     ever apply and the page renders fully visible immediately. */
+  document.documentElement.classList.add('js');
+</script>
+<style>
+  :root{
+    --court: #0E3A2C;
+    --court-deep: #082921;
+    --chalk: #F6F3EA;
+    --ink: #10181C;
+    --accent: #C6FF4D;
+    --line: rgba(246,243,234,0.14);
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html,body{ min-height:100%; }
+  body{
+    font-family:'Noto Sans KR', sans-serif;
+    color:var(--chalk);
+    background:
+      linear-gradient(180deg, var(--court) 0%, var(--court-deep) 65%),
+      repeating-linear-gradient(0deg, transparent 0 78px, var(--line) 78px 79px),
+      repeating-linear-gradient(90deg, transparent 0 78px, var(--line) 78px 79px);
+    min-height:100dvh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:40px 20px calc(28px + env(safe-area-inset-bottom));
+    position:relative;
+    overflow-x:hidden;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  /* ---------- animated court boundary (sits above the static grid backdrop) ---------- */
+  .court-boundary{
+    position:fixed; inset:0; z-index:1; pointer-events:none;
+  }
+  .court-boundary svg{ width:100%; height:100%; display:block; }
+  .court-line{
+    fill:none;
+    stroke:var(--line);
+    stroke-width:1.6;
+    vector-effect:non-scaling-stroke;
+  }
+  .js .court-boundary.lines-animate .line-outer{
+    animation: lightUp .22s ease-out forwards;
+  }
+  .js .court-boundary.lines-animate .line-center{
+    animation: lightUp .22s ease-out forwards;
+    animation-delay:.13s;
+  }
+  .js .court-boundary.lines-animate .line-inner{
+    animation: lightUp .22s ease-out forwards;
+    animation-delay:.26s;
+  }
+  @keyframes lightUp{
+    0%{ stroke:var(--line); }
+    100%{ stroke:var(--accent); }
+  }
+  /* synchronized brief flash + return to resting ivory, all lines together */
+  .js .court-boundary.lines-flash-out .court-line{
+    animation: flashReturn .32s ease-out forwards;
+  }
+  @keyframes flashReturn{
+    0%{ stroke:var(--accent); }
+    35%{ stroke:#EFFFDA; }
+    100%{ stroke:var(--line); }
+  }
+
+  /* ---------- camera flash ---------- */
+  .flash{
+    position:fixed; inset:0; z-index:5;
+    background:#FFFFFF;
+    opacity:0;
+    pointer-events:none;
+  }
+  .js .flash.run{
+    animation: flashPop .16s ease-out forwards;
+  }
+  @keyframes flashPop{
+    0%{ opacity:0; }
+    35%{ opacity:.7; }
+    100%{ opacity:0; }
+  }
+
+  .stage{ position:relative; z-index:3; width:100%; max-width:420px; }
+
+  /* ---------- NFC stage ---------- */
+  .nfc-stage{
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    gap:14px;
+    padding:70px 0;
+  }
+  .js .nfc-stage{ display:flex; }
+
+  .nfc-ring{
+    width:64px; height:64px;
+    border-radius:50%;
+    border:2px solid var(--chalk);
+    display:flex; align-items:center; justify-content:center;
+    position:relative;
+    opacity:.9;
+  }
+  .js .nfc-stage.run .nfc-ring{
+    animation: nfcPop .4s ease-out forwards;
+  }
+  @keyframes nfcPop{
+    0%{ transform:scale(.85); opacity:.55; }
+    65%{ transform:scale(1.06); opacity:1; }
+    100%{ transform:scale(1); opacity:1; }
+  }
+  .nfc-ring::before{
+    content:"";
+    position:absolute; inset:-13px;
+    border-radius:50%;
+    border:2px solid var(--accent);
+    opacity:0;
+  }
+  .js .nfc-stage.run .nfc-ring::before{
+    animation: pulseOnce .45s ease-out forwards;
+  }
+  @keyframes pulseOnce{
+    0%{ transform:scale(.8); opacity:.9; }
+    100%{ transform:scale(1.3); opacity:0; }
+  }
+  .nfc-icon{ width:28px; height:28px; }
+  .nfc-label{
+    font-size:13px; letter-spacing:.06em;
+    color:var(--chalk); opacity:.82;
+  }
+
+  /* ---------- main content ---------- */
+  .content{ text-align:center; }
+
+  .eyebrow{
+    font-size:12.5px; letter-spacing:.24em; font-weight:700;
+    color:var(--accent); margin-bottom:12px;
+  }
+  .title{
+    font-family:'Black Han Sans', sans-serif;
+    font-size:clamp(26px, 7.5vw, 34px);
+    line-height:1.3;
+  }
+  .title span{ color:var(--accent); }
+  .desc{
+    margin-top:14px;
+    font-size:14px; line-height:1.7;
+    color:var(--chalk); opacity:.78;
+  }
+
+  /* pre-animation hidden state — only when JS is present */
+  .js .content .eyebrow,
+  .js .content .title,
+  .js .content .desc{
+    opacity:0;
+    transform:translateY(7px);
+  }
+  .js .content.show .eyebrow{ animation:fadeUp .42s ease-out forwards; }
+  .js .content.show .title{ animation:fadeUp .44s ease-out forwards; animation-delay:.1s; }
+  .js .content.show .desc{ animation:fadeUp .44s ease-out forwards; animation-delay:.2s; }
+  @keyframes fadeUp{
+    from{ opacity:0; transform:translateY(7px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+
+  /* ---------- menu ---------- */
+  .menu{
+    margin-top:26px;
+    display:flex;
+    flex-direction:column;
+    gap:11px;
+  }
+  .card{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:16px 18px;
+    border-radius:16px;
+    text-decoration:none;
+    color:var(--chalk);
+    background:rgba(246,243,234,0.06);
+    border:1px solid var(--line);
+    text-align:left;
+  }
+  .card:active{ transform:scale(.98); }
+  .card-primary{
+    background:var(--accent);
+    color:var(--ink);
+    border:none;
+    box-shadow:0 8px 22px rgba(198,255,77,0.25);
+  }
+  .card:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:3px;
+  }
+  .card-icon{
+    width:40px; height:40px;
+    border-radius:11px;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(246,243,234,0.1);
+    flex-shrink:0;
+  }
+  .card-primary .card-icon{ background:rgba(16,24,28,0.14); }
+  .card-icon svg{ width:20px; height:20px; }
+  .card-text{ flex:1; display:flex; flex-direction:column; }
+  .card-title{ font-weight:700; font-size:15px; }
+  .card-sub{ font-size:12px; opacity:.7; margin-top:2px; }
+  .card-arrow{ width:16px; height:16px; opacity:.6; flex-shrink:0; }
+
+  .js .content .card{
+    opacity:0;
+    transform:translateY(7px);
+  }
+  .js .content.show .card-primary{
+    animation:cardInScale .44s ease-out forwards;
+    animation-delay:.3s;
+  }
+  .js .content.show .card:nth-child(2){
+    animation:cardIn .42s ease-out forwards;
+    animation-delay:.42s;
+  }
+  @keyframes cardIn{
+    from{ opacity:0; transform:translateY(7px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  @keyframes cardInScale{
+    from{ opacity:0; transform:translateY(7px) scale(.98); }
+    to{ opacity:1; transform:translateY(0) scale(1); }
+  }
+
+  /* ---------- keyring id pill (below the menu) ---------- */
+  .id-pill{
+    margin-top:18px;
+    display:inline-block;
+    font-size:12px;
+    color:var(--chalk);
+    opacity:.65;
+    border:1px solid var(--line);
+    padding:5px 14px;
+    border-radius:999px;
+  }
+  .id-pill b{ color:var(--accent); opacity:1; }
+
+  .footer-credit{
+    margin-top:34px;
+    font-size:11px;
+    line-height:1.7;
+    letter-spacing:.04em;
+    color:var(--chalk);
+    opacity:.32;
+  }
+
+  /* ---------- skip button ---------- */
+  .skip-btn{
+    position:fixed;
+    left:50%;
+    bottom:calc(20px + env(safe-area-inset-bottom));
+    transform:translateX(-50%);
+    z-index:6;
+    background:rgba(16,24,28,0.55);
+    color:var(--chalk);
+    border:1px solid rgba(246,243,234,0.35);
+    border-radius:999px;
+    padding:10px 24px;
+    font-size:13px;
+    min-height:40px;
+    -webkit-backdrop-filter:blur(4px);
+    backdrop-filter:blur(4px);
+  }
+  .skip-btn:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:2px;
+  }
+  .skip-btn[hidden]{ display:none; }
+
+  @media (prefers-reduced-motion: reduce){
+    .js .content .eyebrow,
+    .js .content .title,
+    .js .content .desc,
+    .js .content .card{
+      opacity:1 !important;
+      transform:none !important;
+      animation:none !important;
+    }
+    .nfc-stage, .flash{ display:none !important; }
+    .court-line{ animation:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="court-boundary" id="courtBoundary" aria-hidden="true">
+  <svg viewBox="0 0 400 700" preserveAspectRatio="xMidYMid slice">
+    <rect class="court-line line-outer" x="24" y="40" width="352" height="620"/>
+    <line class="court-line line-center" x1="24" y1="350" x2="376" y2="350"/>
+    <line class="court-line line-inner" x1="24" y1="180" x2="376" y2="180"/>
+    <line class="court-line line-inner" x1="24" y1="520" x2="376" y2="520"/>
+    <line class="court-line line-inner" x1="200" y1="40" x2="200" y2="660"/>
+  </svg>
+</div>
+
+<div class="flash" id="flash" aria-hidden="true"></div>
+
+<main class="stage">
+
+  <div class="nfc-stage" id="nfcStage" aria-hidden="true">
+    <div class="nfc-ring">
+      <svg class="nfc-icon" viewBox="0 0 24 24" fill="none" stroke="#F6F3EA" stroke-width="1.6" aria-hidden="true">
+        <path d="M6 9a7 7 0 0 1 10 0M8.5 11.5a3.5 3.5 0 0 1 5 0M11 14a.9.9 0 1 1 0 1.8.9.9 0 0 1 0-1.8Z" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <p class="nfc-label">키링이 인식되었습니다</p>
+  </div>
+
+  <div class="content" id="content">
+    <p class="eyebrow">2026.08.08 · COCKKKIO TOURNAMENT</p>
+    <h1 class="title">우리의 경기,<br>우리의 <span>기록</span></h1>
+    <p class="desc">콕끼오 대회의 경기 사진과<br>즐거웠던 순간을 한곳에 담았습니다.</p>
+
+    <nav class="menu" aria-label="주요 메뉴">
+      <a class="card card-primary" id="linkArchive" href="archive.html">
+        <span class="card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/>
+            <circle cx="12" cy="13" r="3.2"/>
+          </svg>
+        </span>
+        <span class="card-text">
+          <span class="card-title">대회 사진 보러가기</span>
+          <span class="card-sub">경기와 단체사진을 한곳에서 확인하세요</span>
+        </span>
+        <svg class="card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+
+      <a class="card" id="linkDraw" href="draw.html">
+        <span class="card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3.5" y="9" width="17" height="4"/>
+            <rect x="4.5" y="13" width="15" height="7"/>
+            <line x1="12" y1="9" x2="12" y2="20"/>
+            <path d="M12 9c-1.6-2.6-5.5-2.6-5.5-.3C6.5 10.2 8.5 9 12 9zM12 9c1.6-2.6 5.5-2.6 5.5-.3C17.5 10.2 15.5 9 12 9z"/>
+          </svg>
+        </span>
+        <span class="card-text">
+          <span class="card-title">럭키드로우 결과 확인</span>
+          <span class="card-sub">내 키링의 당첨 결과를 확인하세요</span>
+        </span>
+        <svg class="card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </nav>
+
+    <p class="id-pill" id="idPill" hidden>내 키링 번호 · <b id="idValue"></b></p>
+
+    <p class="footer-credit">Made with ❤️ by CockkkiO<br>2026 Tournament Archive</p>
+  </div>
+
+</main>
+
+<button type="button" class="skip-btn" id="skipBtn" hidden>바로 보기</button>
+
+<script>
+(function(){
+  var reduceMotion = false;
+  try{
+    reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }catch(e){}
+
+  var visited = false;
+  try{
+    visited = sessionStorage.getItem('cockkkio_intro_seen') === '1';
+  }catch(e){}
+
+  function markVisited(){
+    try{ sessionStorage.setItem('cockkkio_intro_seen', '1'); }catch(e){}
+  }
+
+  function applyKeyringId(){
+    var params = new URLSearchParams(window.location.search);
+    var kioId = params.get('id');
+    if(!kioId) return;
+    var idPill = document.getElementById('idPill');
+    var idValue = document.getElementById('idValue');
+    idPill.hidden = false;
+    idValue.textContent = kioId;
+    ['linkArchive','linkDraw'].forEach(function(elId){
+      var el = document.getElementById(elId);
+      if(!el) return;
+      var base = el.getAttribute('href').split('?')[0];
+      el.href = base + '?id=' + encodeURIComponent(kioId);
+    });
+  }
+
+  function showFinal(){
+    var nfcStage = document.getElementById('nfcStage');
+    var content = document.getElementById('content');
+    var skipBtn = document.getElementById('skipBtn');
+    var courtBoundary = document.getElementById('courtBoundary');
+    nfcStage.style.display = 'none';
+    courtBoundary.classList.remove('lines-animate');
+    courtBoundary.classList.remove('lines-flash-out');
+    content.classList.add('show');
+    skipBtn.hidden = true;
+  }
+
+  function init(){
+    applyKeyringId();
+
+    if(reduceMotion || visited){
+      showFinal();
+      markVisited();
+      return;
+    }
+
+    runIntro();
+  }
+
+  function runIntro(){
+    var nfcStage = document.getElementById('nfcStage');
+    var courtBoundary = document.getElementById('courtBoundary');
+    var flash = document.getElementById('flash');
+    var content = document.getElementById('content');
+    var skipBtn = document.getElementById('skipBtn');
+
+    var T_NFC = 550;    // NFC icon shown for ~0.55s
+    var T_LINES = 520;  // sequential court-line light-up phase
+    var T_FLASH = 200;  // camera flash + lines flash-out
+
+    var timers = [];
+    var done = false;
+
+    function finish(){
+      if(done) return;
+      done = true;
+      timers.forEach(clearTimeout);
+      showFinal();
+      markVisited();
+    }
+
+    skipBtn.hidden = false;
+    skipBtn.addEventListener('click', finish);
+
+    // Stage 1: NFC pulse (plays once)
+    nfcStage.classList.add('run');
+
+    // Stage 2: hide NFC prompt, light up the court lines in sequence
+    timers.push(setTimeout(function(){
+      nfcStage.style.display = 'none';
+      courtBoundary.classList.add('lines-animate');
+    }, T_NFC));
+
+    // Stage 2 end / Stage 3: synchronized line flash + camera flash together
+    timers.push(setTimeout(function(){
+      courtBoundary.classList.add('lines-flash-out');
+      flash.classList.add('run');
+    }, T_NFC + T_LINES));
+
+    // Stage 4: reveal content
+    timers.push(setTimeout(function(){
+      if(done) return;
+      done = true;
+      content.classList.add('show');
+      skipBtn.hidden = true;
+      markVisited();
+    }, T_NFC + T_LINES + T_FLASH));
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  }else{
+    init();
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>콕끼오 대회 아카이브</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --court: #0E3A2C;
+    --court-deep: #082921;
+    --card: #103F30;
+    --chalk: #F6F3EA;
+    --ink: #10181C;
+    --accent: #C6FF4D;
+    --line: rgba(246,243,234,0.14);
+    --muted: rgba(246,243,234,0.62);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    font-family:'Noto Sans KR', sans-serif;
+    background:var(--court-deep);
+    color:var(--chalk);
+    -webkit-font-smoothing:antialiased;
+  }
+  a{ color:inherit; }
+  img{ display:block; max-width:100%; }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    position:relative;
+    padding:64px 24px 46px;
+    background:
+      linear-gradient(180deg, var(--court) 0%, var(--court-deep) 100%),
+      repeating-linear-gradient(0deg, transparent 0 78px, var(--line) 78px 79px),
+      repeating-linear-gradient(90deg, transparent 0 78px, var(--line) 78px 79px);
+    overflow:hidden;
+  }
+  .hero::after{
+    content:"";
+    position:absolute; inset:22px;
+    border:2px solid var(--line);
+    pointer-events:none;
+  }
+  .hero-inner{ max-width:960px; margin:0 auto; position:relative; z-index:1; }
+  .eyebrow{
+    font-size:12.5px; letter-spacing:.28em; font-weight:700;
+    color:var(--accent); margin-bottom:16px;
+  }
+  h1.title{
+    font-family:'Black Han Sans', sans-serif;
+    font-size:clamp(32px, 6vw, 56px);
+    line-height:1.18;
+  }
+  h1.title span{ color:var(--accent); }
+  .hero-sub{
+    margin-top:16px;
+    max-width:480px;
+    font-size:14.5px;
+    line-height:1.75;
+    color:var(--muted);
+  }
+
+  /* ---------- FEATHER DIVIDER ---------- */
+  .feather-divider{
+    height:34px;
+    display:block;
+    width:100%;
+    opacity:.5;
+  }
+
+  /* ---------- SECTIONS ---------- */
+  main{ max-width:1040px; margin:0 auto; padding:0 20px 80px; }
+  section.block{ padding:44px 0 8px; }
+  .block-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:22px;
+    flex-wrap:wrap;
+  }
+  .block-head h2{
+    font-family:'Black Han Sans', sans-serif;
+    font-size:clamp(21px, 3.4vw, 27px);
+    letter-spacing:.01em;
+  }
+  .block-head .tag{
+    font-size:12px;
+    color:var(--accent);
+    border:1px solid rgba(198,255,77,0.4);
+    padding:5px 12px;
+    border-radius:999px;
+    letter-spacing:.04em;
+    white-space:nowrap;
+  }
+
+  /* photo grid — masonry via CSS columns, natural photo proportions */
+  .grid{
+    column-count:2;
+    column-gap:10px;
+  }
+  @media (min-width:480px){ .grid{ column-count:3; } }
+  @media (min-width:820px){ .grid{ column-count:4; } }
+  .grid.status-mode{ column-count:1; }
+
+  .cell{
+    display:block;
+    break-inside:avoid;
+    margin-bottom:10px;
+    border-radius:10px;
+    overflow:hidden;
+    background:var(--card);
+    border:1px solid var(--line);
+    cursor:pointer;
+  }
+  .cell img{
+    width:100%; height:auto; display:block;
+    transition:transform .35s ease;
+  }
+  .cell:hover img{ transform:scale(1.04); }
+
+  .grid-status{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:34px 10px;
+    color:var(--muted);
+    text-align:center;
+    font-size:13px;
+  }
+  .grid-status svg{ width:24px; height:24px; opacity:.6; }
+
+  .load-more{
+    display:block;
+    margin:18px auto 0;
+    padding:12px 26px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    background:rgba(246,243,234,0.06);
+    color:var(--chalk);
+    font-size:13px;
+    cursor:pointer;
+  }
+  .load-more:active{ transform:scale(.97); }
+
+  /* lightbox */
+  #lightbox{
+    position:fixed; inset:0; z-index:50;
+    background:rgba(4,14,10,0.92);
+    display:none;
+    align-items:center; justify-content:center;
+    padding:26px;
+  }
+  #lightbox.open{ display:flex; }
+  #lightbox img{ max-width:100%; max-height:82vh; border-radius:10px; }
+  #lightbox .lb-cap{ color:var(--muted); font-size:13px; margin-top:14px; text-align:center; }
+  #lightbox .lb-close{
+    position:absolute; top:22px; right:22px;
+    width:38px; height:38px;
+    border-radius:50%;
+    border:1px solid var(--line);
+    background:transparent; color:var(--chalk);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+
+  footer{
+    padding:40px 20px 60px;
+    text-align:center;
+    color:var(--muted);
+    font-size:12.5px;
+    border-top:1px solid var(--line);
+  }
+  footer b{ color:var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">COCKKKIO TOURNAMENT · 2026.08.08</div>
+    <h1 class="title">그날의 코트,<br>그날의 <span>스매시</span></h1>
+    <p class="hero-sub">콕끼오가 함께한 하루. 그 순간들을 모아뒀어요.</p>
+  </div>
+</div>
+
+<svg class="feather-divider" viewBox="0 0 1040 34" preserveAspectRatio="none">
+  <path d="M0 17 Q 20 32, 40 17 T 80 17 T 120 17 T 160 17 T 200 17 T 240 17 T 280 17 T 320 17 T 360 17 T 400 17 T 440 17 T 480 17 T 520 17 T 560 17 T 600 17 T 640 17 T 680 17 T 720 17 T 760 17 T 800 17 T 840 17 T 880 17 T 920 17 T 960 17 T 1000 17 T 1040 17"
+    fill="none" stroke="#C6FF4D" stroke-width="1.4"/>
+</svg>
+
+<main>
+
+  <!-- PHOTOS (all in one feed) -->
+  <section class="block" id="photos">
+    <div class="block-head">
+      <h2>사진</h2>
+      <span class="tag">PHOTOS</span>
+    </div>
+    <div class="grid" data-group="photos"></div>
+    <button type="button" class="load-more" id="loadMoreBtn" style="display:none;">사진 더 보기</button>
+  </section>
+
+</main>
+
+<footer>
+  Made by <b>콕끼오</b> 운영진 · 2026.08.08
+</footer>
+
+<!-- LIGHTBOX -->
+<div id="lightbox">
+  <button class="lb-close" id="lbClose">✕</button>
+  <div>
+    <img id="lbImg" src="" alt="">
+    <div class="lb-cap" id="lbCap"></div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   자동 사진 불러오기 — 설정은 딱 한 번만
+   -----------------------------------------------------------------
+   아래 REPO_OWNER를 본인 GitHub 아이디로 한 번만 바꿔주세요.
+   그 다음부터는 assets/photos 폴더에 폰으로 찍은 사진을 이름 그대로
+   업로드하기만 하면 자동으로 나타나요. 카테고리 구분 없이 한 곳에
+   다 모아두는 방식이라, 올릴 때 어디에 넣을지 고민할 필요가 없어요.
+===================================================================== */
+const REPO_OWNER = "jewo7942-blip";
+const REPO_NAME  = "cockkkio-archive";
+const BRANCH     = "main";
+const PHOTOS_PATH = "assets/photos";
+const PAGE_SIZE = 24; // 한 번에 보여줄 사진 수 (더 보기 버튼으로 이어서 로드)
+
+const IMAGE_EXT = /\.(jpe?g|png|webp|heic|heif)$/i;
+
+const iconEmpty = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6h16v12H4z"/><path d="M4 16l4.5-4.5L11 14l4-4 5 5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="9" r="1.4"/></svg>`;
+const iconLoading = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2" stroke-linecap="round"/></svg>`;
+
+function renderStatus(gridEl, icon, text){
+  gridEl.classList.add('status-mode');
+  gridEl.innerHTML = `<div class="grid-status">${icon}<span>${text}</span></div>`;
+}
+
+async function fetchFolder(path){
+  const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?ref=${BRANCH}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('fetch failed: ' + res.status);
+  const list = await res.json();
+  if(!Array.isArray(list)) throw new Error('unexpected response');
+  return list
+    .filter(f => f.type === 'file' && IMAGE_EXT.test(f.name))
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(f => ({ src: f.download_url, name: f.name }));
+}
+
+let allPhotos = [];
+let shownCount = 0;
+
+function appendCell(gridEl, item){
+  const cell = document.createElement('div');
+  cell.className = 'cell';
+
+  const img = document.createElement('img');
+  img.loading = 'lazy';
+  img.alt = '';
+  img.src = item.src;
+
+  cell.appendChild(img);
+  cell.addEventListener('click', () => openLightbox(item));
+  gridEl.appendChild(cell);
+}
+
+function showMore(){
+  const gridEl = document.querySelector('.grid[data-group="photos"]');
+  const moreBtn = document.getElementById('loadMoreBtn');
+  const next = allPhotos.slice(shownCount, shownCount + PAGE_SIZE);
+  next.forEach(item => appendCell(gridEl, item));
+  shownCount += next.length;
+  moreBtn.style.display = (shownCount < allPhotos.length) ? 'block' : 'none';
+}
+
+async function loadPhotos(){
+  const gridEl = document.querySelector('.grid[data-group="photos"]');
+  renderStatus(gridEl, iconLoading, '사진을 불러오는 중...');
+  try{
+    allPhotos = await fetchFolder(PHOTOS_PATH);
+    if(allPhotos.length === 0){
+      renderStatus(gridEl, iconEmpty, '아직 업로드된 사진이 없어요');
+      return;
+    }
+    gridEl.classList.remove('status-mode');
+    gridEl.innerHTML = '';
+    shownCount = 0;
+    showMore();
+    const tag = document.querySelector('#photos .tag');
+    if(tag) tag.textContent = `PHOTOS · ${allPhotos.length}장`;
+  }catch(e){
+    renderStatus(gridEl, iconEmpty, '사진을 불러오지 못했어요\n(REPO_OWNER 설정을 확인해주세요)');
+  }
+}
+
+document.getElementById('loadMoreBtn').addEventListener('click', showMore);
+
+const lightbox = document.getElementById('lightbox');
+const lbImg = document.getElementById('lbImg');
+const lbCap = document.getElementById('lbCap');
+function openLightbox(item){
+  lbImg.src = item.src;
+  lbCap.textContent = '';
+  lightbox.classList.add('open');
+}
+document.getElementById('lbClose').addEventListener('click', () => lightbox.classList.remove('open'));
+lightbox.addEventListener('click', (e) => { if(e.target === lightbox) lightbox.classList.remove('open'); });
+
+loadPhotos();
+</script>
+
+</body>
+</html>

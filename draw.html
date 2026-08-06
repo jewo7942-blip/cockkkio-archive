@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>콕끼오 럭키드로우</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --court: #0E3A2C;
+    --court-deep: #082921;
+    --card: #103F30;
+    --chalk: #F6F3EA;
+    --ink: #10181C;
+    --accent: #C6FF4D;
+    --line: rgba(246,243,234,0.16);
+    --muted: rgba(246,243,234,0.62);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    font-family:'Noto Sans KR', sans-serif;
+    background:
+      linear-gradient(180deg, var(--court) 0%, var(--court-deep) 60%),
+      repeating-linear-gradient(0deg, transparent 0 78px, var(--line) 78px 79px),
+      repeating-linear-gradient(90deg, transparent 0 78px, var(--line) 78px 79px);
+    color:var(--chalk);
+    min-height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:32px 20px 48px;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  .wrap{ width:100%; max-width:420px; text-align:center; }
+
+  .eyebrow{
+    font-size:12.5px; letter-spacing:.26em; font-weight:700;
+    color:var(--accent); margin-bottom:10px;
+  }
+  h1{
+    font-family:'Black Han Sans', sans-serif;
+    font-size:clamp(26px, 7vw, 34px);
+    line-height:1.25;
+  }
+  .id-tag{
+    display:inline-block;
+    margin-top:12px;
+    font-size:12.5px;
+    color:var(--muted);
+    border:1px solid var(--line);
+    padding:5px 14px;
+    border-radius:999px;
+  }
+  .id-tag b{ color:var(--accent); }
+
+  /* ---------- WHEEL ---------- */
+  .wheel-stage{
+    position:relative;
+    width:min(78vw, 300px);
+    height:min(78vw, 300px);
+    margin:36px auto 8px;
+  }
+  .pointer{
+    position:absolute;
+    top:-6px; left:50%;
+    transform:translateX(-50%);
+    width:0; height:0;
+    border-left:11px solid transparent;
+    border-right:11px solid transparent;
+    border-top:18px solid var(--accent);
+    z-index:5;
+    filter:drop-shadow(0 2px 3px rgba(0,0,0,.35));
+  }
+  .hub{
+    position:absolute;
+    top:50%; left:50%;
+    width:58px; height:58px;
+    transform:translate(-50%,-50%);
+    background:var(--ink);
+    border:3px solid var(--accent);
+    border-radius:50%;
+    z-index:4;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .hub svg{ width:26px; height:26px; }
+
+  .wheel{
+    width:100%; height:100%;
+    border-radius:50%;
+    position:relative;
+    border:4px solid var(--card);
+    box-shadow:0 0 0 2px var(--line), 0 18px 40px rgba(0,0,0,.4);
+    transition: transform 4.2s cubic-bezier(.12,.85,.15,1);
+    overflow:hidden;
+  }
+  .seg{
+    position:absolute;
+    inset:0;
+    display:flex;
+    justify-content:center;
+    padding-top:10px;
+  }
+  .seg span{
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--ink);
+    letter-spacing:.01em;
+    white-space:nowrap;
+  }
+
+  .spin-btn{
+    margin-top:30px;
+    width:100%;
+    padding:17px;
+    border:none;
+    border-radius:999px;
+    background:var(--accent);
+    color:var(--ink);
+    font-family:'Black Han Sans', sans-serif;
+    font-size:17px;
+    letter-spacing:.02em;
+    cursor:pointer;
+  }
+  .spin-btn:active{ transform:scale(.98); }
+  .spin-btn:disabled{ opacity:.5; }
+
+  .result{
+    margin-top:26px;
+    min-height:64px;
+    opacity:0;
+    transform:translateY(8px);
+  }
+  .result.show{ animation: rIn .5s ease forwards; }
+  @keyframes rIn{ to{ opacity:1; transform:translateY(0);} }
+  .result .label{
+    font-size:13px; color:var(--muted); letter-spacing:.04em;
+  }
+  .result .prize{
+    font-family:'Black Han Sans', sans-serif;
+    font-size:30px;
+    color:var(--accent);
+    margin-top:6px;
+  }
+  .result .note{
+    margin-top:10px;
+    font-size:12.5px;
+    color:var(--muted);
+    line-height:1.6;
+  }
+
+  .footer-note{
+    margin-top:34px;
+    font-size:11.5px;
+    color:var(--muted);
+    opacity:.7;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .wheel{ transition:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="eyebrow">COCKKKIO · LUCKY DRAW</div>
+  <h1>당신의 셔틀콕은<br>이미 운명이 정해져 있어요</h1>
+  <div class="id-tag">키링 번호 <b id="idDisplay">-</b></div>
+
+  <div class="wheel-stage">
+    <div class="pointer"></div>
+    <div class="hub">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#C6FF4D" stroke-width="1.6">
+        <circle cx="12" cy="5" r="2.6" fill="#C6FF4D" stroke="none"/>
+        <path d="M12 8 L6 19 L9.5 20 L12 14.5 L14.5 20 L18 19 Z" fill="#C6FF4D" stroke="none" opacity=".9"/>
+      </svg>
+    </div>
+    <div class="wheel" id="wheel"></div>
+  </div>
+
+  <button class="spin-btn" id="spinBtn">스매시 돌리기</button>
+
+  <div class="result" id="result">
+    <div class="label">결과</div>
+    <div class="prize" id="prizeText"></div>
+    <div class="note" id="prizeNote"></div>
+  </div>
+
+  <div class="footer-note">화면을 운영진에게 보여주면 상품으로 교환해드려요</div>
+</div>
+
+<script>
+/* =====================================================================
+   상품 배정표 — 여기만 수정하면 돼요
+   -----------------------------------------------------------------
+   키링을 구울 때 넣은 번호(id)별로 상품을 미리 정해두는 방식이에요.
+   그래서 같은 키링은 몇 번을 태그해도 항상 같은 결과가 나와요.
+   (겉보기엔 룰렛이 랜덤으로 도는 것 같지만, 실제로는 이미 정해진
+    자리에 정확히 멈추도록 계산돼요.)
+
+   지정 안 된 번호는 전부 DEFAULT_PRIZE로 처리됩니다.
+===================================================================== */
+const WINNERS = {
+  1:  "대상",
+  47: "1등",
+  88: "1등",
+  12: "2등",
+  33: "2등",
+  56: "2등",
+  71: "3등",
+  90: "3등",
+  15: "3등",
+  102:"3등",
+  // 필요한 만큼 계속 추가하세요. 예: 23: "참가상",
+};
+const DEFAULT_PRIZE = "꽝";
+
+// 룰렛에 보여줄 8칸 구성 (순서/문구만 바꿔도 되지만, 개수는 8칸 유지 권장)
+const SEGMENTS = ["대상","참가상","꽝","1등","꽝","2등","참가상","3등"];
+const SEG_COLORS = ["#C6FF4D","#F6F3EA","#0B2A20","#C6FF4D","#0B2A20","#C6FF4D","#F6F3EA","#C6FF4D"];
+
+const PRIZE_NOTE = {
+  "대상":  "축하드려요! 대회 최고 경품이에요 🏆",
+  "1등":   "축하드려요! 1등 경품이에요 🎉",
+  "2등":   "축하드려요! 2등 경품이에요 🎊",
+  "3등":   "축하드려요! 3등 경품이에요 👏",
+  "참가상": "참가해주셔서 감사해요, 작은 선물이 준비되어 있어요",
+  "꽝":    "아쉽지만 다음 기회에! 그래도 오늘 스매시는 최고였어요",
+};
+
+// ---- 원판(wheel) 그리기 ----
+const wheelEl = document.getElementById('wheel');
+const N = SEGMENTS.length;
+const segAngle = 360 / N;
+
+let gradientParts = [];
+SEGMENTS.forEach((label, i) => {
+  const start = i * segAngle;
+  const end = (i+1) * segAngle;
+  gradientParts.push(`${SEG_COLORS[i]} ${start}deg ${end}deg`);
+});
+wheelEl.style.background = `conic-gradient(${gradientParts.join(',')})`;
+
+SEGMENTS.forEach((label, i) => {
+  const center = i * segAngle + segAngle/2;
+  const seg = document.createElement('div');
+  seg.className = 'seg';
+  seg.style.transform = `rotate(${center}deg)`;
+  const span = document.createElement('span');
+  span.textContent = label;
+  // 밝은 배경 칸은 어두운 글씨, 어두운 배경 칸은 밝은 글씨
+  const darkBg = SEG_COLORS[i] === "#0B2A20";
+  span.style.color = darkBg ? "#F6F3EA" : "#10181C";
+  seg.appendChild(span);
+  wheelEl.appendChild(seg);
+});
+
+// ---- id 읽기 ----
+const params = new URLSearchParams(window.location.search);
+const idRaw = params.get('id');
+const id = idRaw !== null ? parseInt(idRaw, 10) : null;
+document.getElementById('idDisplay').textContent = (id !== null && !isNaN(id)) ? id : '미확인';
+
+const prize = (id !== null && WINNERS[id]) ? WINNERS[id] : DEFAULT_PRIZE;
+
+// 상품에 해당하는 첫 번째 세그먼트 인덱스 찾기
+let targetIndex = SEGMENTS.indexOf(prize);
+if(targetIndex === -1) targetIndex = SEGMENTS.indexOf(DEFAULT_PRIZE);
+
+const spinBtn = document.getElementById('spinBtn');
+const resultBox = document.getElementById('result');
+const prizeText = document.getElementById('prizeText');
+const prizeNote = document.getElementById('prizeNote');
+
+let spun = false;
+spinBtn.addEventListener('click', () => {
+  if(spun){
+    // 이미 결과가 나온 뒤에는 다시 확인만 (같은 결과)
+    resultBox.classList.remove('show');
+    void resultBox.offsetWidth;
+    resultBox.classList.add('show');
+    return;
+  }
+  spun = true;
+  spinBtn.disabled = true;
+  spinBtn.textContent = "확인 중...";
+
+  const center = targetIndex * segAngle + segAngle/2;
+  const extraSpins = 6; // 시각적 스핀 횟수
+  const rotation = extraSpins*360 + (360 - center);
+
+  wheelEl.style.transform = `rotate(${rotation}deg)`;
+
+  setTimeout(() => {
+    prizeText.textContent = prize;
+    prizeNote.textContent = PRIZE_NOTE[prize] || "";
+    resultBox.classList.add('show');
+    spinBtn.disabled = false;
+    spinBtn.textContent = "다시 보기";
+  }, 4300);
+});
+</script>
+
+</body>
+</html>
