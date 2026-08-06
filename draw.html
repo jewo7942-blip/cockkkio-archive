@@ -37,6 +37,13 @@
 
   .wrap{ width:100%; max-width:420px; text-align:center; }
 
+  .hero-logo{
+    width:104px; height:104px;
+    margin:0 auto 16px;
+    object-fit:contain;
+    filter:drop-shadow(0 6px 14px rgba(0,0,0,.3));
+  }
+
   .eyebrow{
     font-size:12.5px; letter-spacing:.26em; font-weight:700;
     color:var(--accent); margin-bottom:10px;
@@ -167,6 +174,7 @@
 <body>
 
 <div class="wrap">
+  <img class="hero-logo" src="assets/brand/logo.png" alt="콕끼오">
   <div class="eyebrow">COCKKKIO · LUCKY DRAW</div>
   <h1>당신의 셔틀콕은<br>이미 운명이 정해져 있어요</h1>
   <div class="id-tag">키링 번호 <b id="idDisplay">-</b></div>
