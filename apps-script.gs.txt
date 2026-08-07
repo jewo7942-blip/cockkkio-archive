@@ -1,0 +1,143 @@
+/* =====================================================================
+   콕끼오 LUCKY SLOT — Google Apps Script 백엔드
+   -----------------------------------------------------------------
+   설치 방법
+   1) 구글 시트 새로 만들기 (이름 아무거나, 예: "콕끼오 럭키슬롯")
+   2) 시트 하단에 탭 2개 만들기: "Rounds", "Plays"
+
+   [Rounds 탭] 1행에 헤더, 2행부터 라운드 데이터
+   roundNumber | status | prizeLabel | winRate | winnerKeyringId | closedAt
+   1           | OPEN   | 음료 1개    | 0.15    |                 |
+
+   * status는 OPEN / CLOSED / COMING_SOON 중 하나만 적기
+   * winRate는 0~1 사이 숫자 (0.15 = 15% 확률)
+   * winnerKeyringId, closedAt은 당첨자가 나오면 자동으로 채워짐 (비워두기)
+   * 새 라운드를 열 땐 그냥 새 줄을 추가하고 status를 OPEN으로
+
+   [Plays 탭] 1행에 헤더만 적어두기 (나머지는 자동 기록됨)
+   roundNumber | keyringId | win | kind | at
+
+   3) 상단 메뉴 확장 프로그램 → Apps Script
+   4) 기본 코드 지우고 이 파일 내용 전체 붙여넣기
+   5) 저장 → 배포 → 새 배포
+      - 유형: 웹앱
+      - 실행: 나
+      - 액세스 권한: 전체 허용(Anyone)
+   6) 배포 후 나오는 웹 앱 URL을 복사
+   7) slot.html의 APPS_SCRIPT_URL 값에 그 주소를 붙여넣기
+===================================================================== */
+
+const SHEET_ROUNDS = 'Rounds';
+const SHEET_PLAYS = 'Plays';
+
+function doGet(e) {
+  const action = e.parameter.action;
+  if (action === 'getCurrentRound') return respond_(getCurrentRound_());
+  if (action === 'checkParticipation') {
+    return respond_(checkParticipation_(e.parameter.keyringId, e.parameter.roundNumber));
+  }
+  return respond_({ error: 'unknown action' });
+}
+
+function doPost(e) {
+  const body = JSON.parse(e.postData.contents || '{}');
+  const action = body.action;
+  if (action === 'requestDraw') {
+    return respond_(requestDraw_(body.keyringId, body.roundNumber));
+  }
+  return respond_({ error: 'unknown action' });
+}
+
+function respond_(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function sheet_(name) {
+  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+}
+
+/* 가장 마지막(가장 최근) 라운드 행을 현재 라운드로 취급 */
+function getCurrentRound_() {
+  const sh = sheet_(SHEET_ROUNDS);
+  const values = sh.getDataRange().getValues();
+  let latest = null;
+  for (let i = 1; i < values.length; i++) {
+    if (values[i][0] === '' || values[i][0] === null) continue;
+    latest = values[i];
+  }
+  if (!latest) return { roundNumber: 0, status: 'COMING_SOON', prizeLabel: '' };
+  return {
+    roundNumber: latest[0],
+    status: latest[1],
+    prizeLabel: latest[2],
+  };
+}
+
+function findRoundRowIndex_(sh, roundNumber) {
+  const values = sh.getDataRange().getValues();
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === String(roundNumber)) return i + 1; // 1-indexed
+  }
+  return -1;
+}
+
+function checkParticipation_(keyringId, roundNumber) {
+  const sh = sheet_(SHEET_PLAYS);
+  const values = sh.getDataRange().getValues();
+  for (let i = 1; i < values.length; i++) {
+    const row = values[i];
+    if (String(row[0]) === String(roundNumber) && String(row[1]) === String(keyringId)) {
+      return {
+        participated: true,
+        result: { win: row[2] === true || row[2] === 'TRUE', kind: row[3], at: row[4] },
+      };
+    }
+  }
+  return { participated: false, result: null };
+}
+
+function logPlay_(roundNumber, keyringId, result) {
+  const sh = sheet_(SHEET_PLAYS);
+  sh.appendRow([roundNumber, keyringId, result.win, result.kind || '', result.at]);
+}
+
+/* 실제 추첨 — 동시 접속에도 안전하도록 Lock으로 한 명씩 순서대로 처리 */
+function requestDraw_(keyringId, roundNumber) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const existing = checkParticipation_(keyringId, roundNumber);
+    if (existing.participated) return existing.result;
+
+    const roundsSh = sheet_(SHEET_ROUNDS);
+    const rIdx = findRoundRowIndex_(roundsSh, roundNumber);
+    if (rIdx === -1) return { win: false, error: 'round not found' };
+
+    const rowVals = roundsSh.getRange(rIdx, 1, 1, 6).getValues()[0];
+    const status = rowVals[1];
+    const winRate = Number(rowVals[3]) || 0.15;
+
+    // 이미 다른 사람이 이 라운드를 가져갔으면(CLOSED) 무조건 LOSE
+    if (status !== 'OPEN') {
+      const result = { win: false, kind: 'LOSE', at: Date.now() };
+      logPlay_(roundNumber, keyringId, result);
+      return result;
+    }
+
+    const win = Math.random() < winRate;
+    const result = { win: win, kind: win ? 'WIN' : null, at: Date.now() };
+    logPlay_(roundNumber, keyringId, result);
+
+    if (win) {
+      roundsSh.getRange(rIdx, 2).setValue('CLOSED');       // status
+      roundsSh.getRange(rIdx, 5).setValue(keyringId);       // winnerKeyringId
+      roundsSh.getRange(rIdx, 6).setValue(new Date());      // closedAt
+    }
+
+    return result;
+  } finally {
+    lock.releaseLock();
+  }
+}
