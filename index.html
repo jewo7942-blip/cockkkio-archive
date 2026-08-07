@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>콕끼오 대회 아카이브</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,7 +20,10 @@
     --line: rgba(246,243,234,0.16);
   }
   *{ margin:0; padding:0; box-sizing:border-box; }
-  html,body{ min-height:100%; }
+  html{
+    min-height:100%;
+    background: var(--court-deep); /* fallback layer so no white ever peeks through */
+  }
   body{
     font-family:'Noto Sans KR', sans-serif;
     color:var(--chalk);
@@ -28,11 +31,12 @@
       linear-gradient(180deg, var(--court) 0%, var(--court-deep) 65%),
       repeating-linear-gradient(0deg, transparent 0 78px, var(--line) 78px 79px),
       repeating-linear-gradient(90deg, transparent 0 78px, var(--line) 78px 79px);
-    min-height:100dvh;
+    min-height:100vh;   /* fallback for browsers without dvh support */
+    min-height:100dvh;  /* accounts for iOS Safari's collapsing toolbar */
     display:flex;
     align-items:center;
     justify-content:center;
-    padding:44px 20px calc(28px + env(safe-area-inset-bottom));
+    padding:calc(44px + env(safe-area-inset-top)) 20px calc(28px + env(safe-area-inset-bottom));
     position:relative;
     overflow-x:hidden;
     -webkit-tap-highlight-color:transparent;
@@ -194,6 +198,12 @@
     opacity:0;
     transform:translateY(7px);
   }
+  button.card{
+    width:100%;
+    font-family:inherit;
+    font-size:inherit;
+    cursor:pointer;
+  }
   .card:active{ transform:scale(.98); }
   .card-primary{
     background:var(--accent);
@@ -222,6 +232,7 @@
   }
   .js .content.show .card-primary{ animation-delay:.3s; }
   .js .content.show .card:nth-child(2){ animation-delay:.42s; }
+  .js .content.show .card:nth-child(3){ animation-delay:.54s; }
   @keyframes cardIn{
     from{ opacity:0; transform:translateY(7px); }
     to{ opacity:1; transform:translateY(0); }
@@ -269,7 +280,96 @@
   .skip-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
   .skip-btn[hidden]{ display:none; }
 
+  /* ---------- deposit bottom sheet ---------- */
+  .sheet-backdrop{
+    position:fixed; inset:0; z-index:50;
+    background:rgba(4,14,10,0.62);
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+  }
+  .sheet-backdrop.open{ display:flex; }
+
+  .sheet{
+    width:100%;
+    max-width:460px;
+    background:var(--court-deep);
+    border:1px solid var(--line);
+    border-bottom:none;
+    border-radius:22px 22px 0 0;
+    padding:22px 22px calc(24px + env(safe-area-inset-bottom));
+    position:relative;
+    transform:translateY(100%);
+    transition:transform .28s cubic-bezier(.2,.8,.25,1);
+  }
+  .sheet-backdrop.open .sheet{ transform:translateY(0); }
+
+  .sheet-handle{
+    width:40px; height:4px;
+    border-radius:999px;
+    background:var(--line);
+    margin:0 auto 16px;
+  }
+  .sheet-close{
+    position:absolute;
+    top:16px; right:16px;
+    width:34px; height:34px;
+    border-radius:50%;
+    border:1px solid var(--line);
+    background:transparent;
+    color:var(--chalk);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  .sheet-title{
+    font-family:'Black Han Sans', sans-serif;
+    font-size:19px;
+    text-align:center;
+    margin-bottom:18px;
+  }
+  .sheet-account{
+    background:rgba(246,243,234,0.05);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:18px;
+    text-align:center;
+  }
+  .sheet-bank{
+    font-size:13px;
+    color:var(--muted, rgba(246,243,234,0.62));
+  }
+  .sheet-number{
+    font-family:'Black Han Sans', sans-serif;
+    font-size:24px;
+    letter-spacing:.02em;
+    color:var(--accent);
+    margin-top:6px;
+  }
+  .sheet-holder{
+    font-size:13px;
+    color:var(--chalk);
+    opacity:.75;
+    margin-top:4px;
+  }
+  .sheet-copy-btn{
+    margin-top:16px;
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:999px;
+    background:var(--accent);
+    color:var(--ink);
+    font-weight:700;
+    font-size:15px;
+  }
+  .sheet-copy-btn:active{ transform:scale(.98); }
+  .sheet-copy-btn.copied{ background:#EFFFDA; }
+
+  /* 나중에 카카오페이 송금 버튼을 여기 추가하면 됨 (구조만 준비) */
+  .sheet-future-actions:empty{ display:none; }
+
   @media (prefers-reduced-motion: reduce){
+    .sheet{ transition:none; }
     .js .content .hero-logo,
     .js .content .eyebrow,
     .js .content .title,
@@ -342,6 +442,15 @@
           </span>
           <svg class="card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
+
+        <button type="button" class="card" id="btnDeposit">
+          <span class="card-icon" aria-hidden="true" style="font-size:19px;">🏸</span>
+          <span class="card-text">
+            <span class="card-title">셔틀콕비 입금</span>
+            <span class="card-sub">계좌번호를 빠르게 확인하고 복사하세요</span>
+          </span>
+          <svg class="card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
       </nav>
 
       <p class="id-pill" id="idPill" hidden>내 키링 번호 · <b id="idValue"></b></p>
@@ -353,6 +462,25 @@
 </main>
 
 <button type="button" class="skip-btn" id="skipBtn" hidden>바로 보기</button>
+
+<div class="sheet-backdrop" id="sheetBackdrop">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <button type="button" class="sheet-close" id="sheetClose" aria-label="닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <div class="sheet-title" id="sheetTitle">셔틀콕비 입금</div>
+    <div class="sheet-account">
+      <div class="sheet-bank">카카오뱅크</div>
+      <div class="sheet-number">7979-70-671139</div>
+      <div class="sheet-holder">이희준</div>
+    </div>
+    <button type="button" class="sheet-copy-btn" id="sheetCopyBtn">계좌번호 복사</button>
+    <div class="sheet-future-actions" id="sheetFutureActions">
+      <!-- 나중에 카카오페이 송금 버튼을 여기에 추가하면 됨 -->
+    </div>
+  </div>
+</div>
 
 <script>
 (function(){
@@ -459,6 +587,84 @@
   }else{
     init();
   }
+})();
+</script>
+
+<script>
+(function(){
+  var ACCOUNT_COPY = "797970671139"; // 클립보드에는 숫자만 (화면 표시는 HTML에 그대로 있음)
+
+  var btnDeposit = document.getElementById('btnDeposit');
+  var backdrop = document.getElementById('sheetBackdrop');
+  var closeBtn = document.getElementById('sheetClose');
+  var copyBtn = document.getElementById('sheetCopyBtn');
+  var copyResetTimer = null;
+
+  function openSheet(){
+    backdrop.classList.add('open');
+  }
+  function closeSheet(){
+    backdrop.classList.remove('open');
+  }
+
+  btnDeposit.addEventListener('click', openSheet);
+  closeBtn.addEventListener('click', closeSheet);
+  backdrop.addEventListener('click', function(e){
+    if(e.target === backdrop) closeSheet();
+  });
+
+  function showCopied(){
+    copyBtn.textContent = '✓ 계좌번호가 복사되었습니다';
+    copyBtn.classList.add('copied');
+    clearTimeout(copyResetTimer);
+    copyResetTimer = setTimeout(function(){
+      copyBtn.textContent = '계좌번호 복사';
+      copyBtn.classList.remove('copied');
+    }, 2000);
+  }
+
+  function fallbackCopy(text){
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    var ok = false;
+    try{ ok = document.execCommand('copy'); }catch(e){ ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  copyBtn.addEventListener('click', async function(){
+    var success = false;
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        await navigator.clipboard.writeText(ACCOUNT_COPY);
+        success = true;
+      }
+    }catch(e){ success = false; }
+
+    if(!success){
+      success = fallbackCopy(ACCOUNT_COPY);
+    }
+
+    if(success){
+      showCopied();
+    }else{
+      copyBtn.textContent = '복사에 실패했어요, 직접 선택해주세요';
+      clearTimeout(copyResetTimer);
+      copyResetTimer = setTimeout(function(){
+        copyBtn.textContent = '계좌번호 복사';
+      }, 2000);
+    }
+  });
+
+  // 나중에 카카오페이 송금 버튼을 추가할 자리:
+  // function payWithKakaoPay(){ /* TODO */ }
+  // document.getElementById('sheetFutureActions').appendChild(kakaoPayButtonEl);
 })();
 </script>
 

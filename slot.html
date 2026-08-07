@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>콕끼오 LUCKY SLOT</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,7 +19,10 @@
     --muted: rgba(246,243,234,0.62);
   }
   *{ margin:0; padding:0; box-sizing:border-box; }
-  html,body{ min-height:100%; }
+  html{
+    min-height:100%;
+    background: var(--court-deep);
+  }
   body{
     font-family:'Noto Sans KR', sans-serif;
     color:var(--chalk);
@@ -27,11 +30,12 @@
       linear-gradient(180deg, var(--court) 0%, var(--court-deep) 65%),
       repeating-linear-gradient(0deg, transparent 0 78px, var(--line) 78px 79px),
       repeating-linear-gradient(90deg, transparent 0 78px, var(--line) 78px 79px);
+    min-height:100vh;
     min-height:100dvh;
     display:flex;
     align-items:center;
     justify-content:center;
-    padding:28px 18px calc(24px + env(safe-area-inset-bottom));
+    padding:calc(28px + env(safe-area-inset-top)) 18px calc(24px + env(safe-area-inset-bottom));
     position:relative;
     overflow-x:hidden;
     -webkit-tap-highlight-color:transparent;
@@ -209,6 +213,21 @@
   .result-title.win{ color:var(--accent); }
   .result-title.lose{ color:var(--chalk); opacity:.9; }
   .result-title.near{ color:#FFD86B; }
+  .result-symbols{
+    display:flex;
+    justify-content:center;
+    gap:8px;
+    margin-top:16px;
+  }
+  .result-symbols .rsym{
+    width:52px; height:52px;
+    border-radius:12px;
+    background:var(--court-deep);
+    border:1px solid rgba(198,255,77,0.25);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .result-symbols .rsym img{ width:60%; height:60%; object-fit:contain; }
+  .result-symbols .rsym svg{ width:48%; height:48%; }
   .result-desc{
     margin-top:12px;
     font-size:14px;
@@ -335,6 +354,7 @@
 <div id="resultOverlay">
   <div class="result-card" id="resultCard">
     <div class="result-title" id="resultTitle">JACKPOT!</div>
+    <div class="result-symbols" id="resultSymbols"></div>
     <div class="result-desc" id="resultDesc">축하합니다!<br>당첨되었습니다.<br>운영진에게 이 화면을 보여주세요.</div>
     <div class="result-meta" id="resultMeta"></div>
     <button type="button" class="result-close" id="resultCloseBtn">닫기</button>
@@ -354,11 +374,10 @@
 ===================================================================== */
 const SYM = {
   logo: `<img src="assets/brand/logo.png" alt="">`,
-  shuttle: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="5" r="2.6" fill="currentColor" stroke="none"/><path d="M12 8 L5 20 L9 21 L12 15 L15 21 L19 20 Z" opacity=".85"/></svg>`,
-  racket: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="11" cy="8" rx="6" ry="7"/><path d="M11 15v6M8 21h6" /><path d="M8.5 4.5l5 7M15.5 4.5l-5 7" stroke-width="1"/></svg>`,
-  court: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="1"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="4" x2="12" y2="20"/></svg>`,
+  court: `<img src="assets/brand/symbol-court.png" alt="">`,
+  badge: `<img src="assets/brand/symbol-badge.png" alt="">`,
 };
-const SEQUENCE = ['racket','shuttle','court','logo']; // base loop order
+const SEQUENCE = ['court','badge','logo']; // base loop order
 const LOOPS = 7; // how many times the base sequence repeats in a reel strip
 const ITEM_H_RATIO = 1; // each symbol is a square matching reel width
 
@@ -558,40 +577,80 @@ function renderRound(round){
   }
 }
 
-function setSpinEnabled(enabled, note){
-  spinBtn.disabled = !enabled;
+function setSpinState(mode, note){
+  // mode: 'ready' (can spin) | 'already' (played — can re-view result) | 'locked' (round not open)
   participateNote.textContent = note || '';
+  if(mode === 'ready'){
+    spinBtn.disabled = false;
+    spinBtn.textContent = 'SPIN';
+    spinBtn.dataset.mode = 'spin';
+  }else if(mode === 'already'){
+    spinBtn.disabled = false;
+    spinBtn.textContent = '내 결과 다시 보기';
+    spinBtn.dataset.mode = 'view';
+  }else if(mode === 'spinning'){
+    spinBtn.disabled = true;
+  }else{
+    spinBtn.disabled = true;
+    spinBtn.textContent = 'SPIN';
+    spinBtn.dataset.mode = 'spin';
+  }
+}
+
+function symbolsForKind(kind){
+  if(kind === 'WIN') return ['logo','logo','logo'];
+  const other = SEQUENCE.find(s => s !== 'logo') || SEQUENCE[0];
+  if(kind === 'NEAR') return ['logo','logo', other];
+  const others = SEQUENCE.filter(s => s !== 'logo');
+  return [others[0] || other, others[1] || other, others[0] || other];
+}
+
+function reopenResult(){
+  if(!already) return;
+  const meta = { roundNumber: currentRound.roundNumber, keyringId, at: already.at };
+  const kind = already.kind === 'WIN' ? 'WIN' : (already.kind === 'NEAR' ? 'NEAR' : 'LOSE');
+  const symbols = already.symbols || symbolsForKind(kind);
+  showResult(kind, meta, symbols, true);
 }
 
 /* ---------- result overlay ---------- */
-function showResult(kind, meta){
+function showResult(kind, meta, symbols, quiet){
   const overlay = document.getElementById('resultOverlay');
   const card = document.getElementById('resultCard');
   const title = document.getElementById('resultTitle');
+  const symbolsEl = document.getElementById('resultSymbols');
   const desc = document.getElementById('resultDesc');
   const metaEl = document.getElementById('resultMeta');
 
   card.classList.remove('win');
   title.classList.remove('win','lose','near');
 
+  if(symbols && symbols.length === 3){
+    symbolsEl.innerHTML = symbols.map(id => `<div class="rsym">${SYM[id] || ''}</div>`).join('');
+  }else{
+    symbolsEl.innerHTML = '';
+  }
+
   if(kind === 'WIN'){
     card.classList.add('win');
     title.classList.add('win');
     title.textContent = 'JACKPOT!';
     desc.innerHTML = '축하합니다!<br>당첨되었습니다.<br>운영진에게 이 화면을 보여주세요.';
-    playJackpot();
-    if(navigator.vibrate){ try{ navigator.vibrate([40,30,60]); }catch(e){} }
-    burstConfetti();
+    if(!quiet){
+      playJackpot();
+      if(navigator.vibrate){ try{ navigator.vibrate([40,30,60]); }catch(e){} }
+      burstConfetti();
+    }
   }else if(kind === 'NEAR'){
     title.classList.add('near');
     title.textContent = 'SO CLOSE!';
     desc.innerHTML = '아쉽습니다!<br>다음 기회를 기대해주세요.';
-    playLose();
+    if(!quiet) playLose();
   }else{
     title.classList.add('lose');
     title.textContent = 'NOT THIS TIME';
     desc.innerHTML = '아쉽습니다!<br>다음 기회를 기대해주세요.';
-    playLose();
+    if(!quiet) playLose();
   }
 
   metaEl.innerHTML = `ROUND · <b>${String(meta.roundNumber).padStart(2,'0')}</b><br>참여 ID · <b>${meta.keyringId}</b><br>시간 · <b>${new Date(meta.at).toLocaleString('ko-KR')}</b>`;
@@ -639,7 +698,7 @@ function pickLoseSymbols(){
 async function playSpin(forcedResult){
   if(spinning) return;
   spinning = true;
-  setSpinEnabled(false, '스핀 중...');
+  setSpinState('spinning', '스핀 중...');
   playSpinStart();
 
   let outcome;
@@ -662,29 +721,38 @@ async function playSpin(forcedResult){
   const loopBase = LOOPS - 2; // land within the strip, leaving travel room
   const durations = [900, 1400, kind === 'NEAR' ? 2600 : 2100];
   const delays = [0, 250, 550];
+  const PAUSE_BEFORE_MODAL = 900; // 릴이 멈춘 걸 보여줄 시간 (모달이 바로 안 뜨게)
 
   let finished = 0;
   reelEls.forEach((reelEl, i) => {
     spinReelTo(reelEl, symbols[i], loopBase, durations[i], delays[i], () => {
       finished++;
       if(finished === 3){
-        const meta = { roundNumber: currentRound.roundNumber, keyringId, at: Date.now() };
-        if(!forcedResult){
-          const resultToSave = { win: outcome.win, symbols, kind, at: meta.at };
-          saveDrawResult(keyringId, currentRound.roundNumber, resultToSave);
-          already = resultToSave;
-        }
-        showResult(kind === 'WIN' ? 'WIN' : (kind === 'NEAR' ? 'NEAR' : 'LOSE'), meta);
-        spinning = false;
-        if(currentRound.status === 'OPEN' && !forcedResult){
-          setSpinEnabled(false, '이번 라운드는 이미 참여하셨어요');
-        }
+        setTimeout(() => {
+          const meta = { roundNumber: currentRound.roundNumber, keyringId, at: Date.now() };
+          if(!forcedResult){
+            const resultToSave = { win: outcome.win, symbols, kind, at: meta.at };
+            saveDrawResult(keyringId, currentRound.roundNumber, resultToSave);
+            already = resultToSave;
+          }
+          showResult(kind === 'WIN' ? 'WIN' : (kind === 'NEAR' ? 'NEAR' : 'LOSE'), meta, symbols);
+          spinning = false;
+          if(currentRound.status === 'OPEN' && !forcedResult){
+            setSpinState('already', '이번 라운드는 이미 참여하셨어요');
+          }
+        }, PAUSE_BEFORE_MODAL);
       }
     });
   });
 }
 
-spinBtn.addEventListener('click', () => playSpin());
+spinBtn.addEventListener('click', () => {
+  if(spinBtn.dataset.mode === 'view'){
+    reopenResult();
+  }else{
+    playSpin();
+  }
+});
 
 /* ---------- demo panel ---------- */
 if(demoMode){
@@ -706,16 +774,16 @@ if(demoMode){
   renderRound(currentRound);
 
   if(currentRound.status !== 'OPEN'){
-    setSpinEnabled(false, currentRound.status === 'CLOSED' ? '이번 라운드는 마감되었어요' : '곧 새로운 라운드가 열려요');
+    setSpinState('locked', currentRound.status === 'CLOSED' ? '이번 라운드는 마감되었어요' : '곧 새로운 라운드가 열려요');
     return;
   }
 
   const p = await checkParticipation(keyringId, currentRound.roundNumber);
   if(p.participated){
     already = p.result;
-    setSpinEnabled(false, '이번 라운드는 이미 참여하셨어요');
+    setSpinState('already', '이번 라운드는 이미 참여하셨어요');
     // 이전 결과를 즉시 재표시 (재스핀 없이)
-    const symbols = already.symbols || (already.win ? ['logo','logo','logo'] : ['racket','shuttle','court']);
+    const symbols = already.symbols || (already.win ? ['logo','logo','logo'] : ['court','badge','court']);
     reelEls.forEach((reelEl, i) => {
       const h = reelItemHeight(reelEl);
       const idx = (LOOPS-2)*SEQUENCE.length + SEQUENCE.indexOf(symbols[i]);
@@ -723,7 +791,7 @@ if(demoMode){
       reelEl.style.transform = `translateY(${-(idx*h)}px)`;
     });
   }else{
-    setSpinEnabled(true, '');
+    setSpinState('ready', '');
   }
 })();
 </script>
