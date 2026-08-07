@@ -320,17 +320,17 @@
   <!-- ROUND INFO -->
   <div class="round-card" id="roundCard">
     <div class="round-head">
-      <div class="round-num" id="roundNumLabel">ROUND 01</div>
-      <div class="round-status open" id="roundStatusBadge"><span class="dot"></span><span id="roundStatusText">진행 중</span></div>
+      <div class="round-num" id="roundNumLabel">ROUND --</div>
+      <div class="round-status soon" id="roundStatusBadge"><span class="dot"></span><span id="roundStatusText">불러오는 중</span></div>
     </div>
     <div class="round-body">
       <div class="round-field">
         <div class="l">상품</div>
-        <div class="v" id="roundPrizeLabel">음료 1개</div>
+        <div class="v" id="roundPrizeLabel">준비중</div>
       </div>
       <div class="round-field">
         <div class="l">참여</div>
-        <div class="v" id="roundJoinLabel">1회</div>
+        <div class="v" id="roundJoinLabel">준비중</div>
       </div>
     </div>
   </div>
@@ -342,7 +342,7 @@
       <div class="reel"><div class="reel-strip" id="reel1"></div></div>
       <div class="reel"><div class="reel-strip" id="reel2"></div></div>
     </div>
-    <button type="button" class="spin-btn" id="spinBtn">SPIN</button>
+    <button type="button" class="spin-btn" id="spinBtn" disabled>SPIN</button>
     <p class="participate-note" id="participateNote"></p>
   </div>
 
@@ -697,6 +697,7 @@ function pickLoseSymbols(){
 
 async function playSpin(forcedResult){
   if(spinning) return;
+  if(!currentRound) return; // 라운드 정보가 아직 안 불러와졌으면 아무것도 하지 않음 (안전장치)
   spinning = true;
   setSpinState('spinning', '스핀 중...');
   playSpinStart();
@@ -770,6 +771,7 @@ if(demoMode){
 
 /* ---------- init ---------- */
 (async function init(){
+  setSpinState('locked', '라운드 정보를 불러오는 중...');
   currentRound = await getCurrentRound();
   renderRound(currentRound);
 

@@ -6,12 +6,14 @@
    2) 시트 하단에 탭 2개 만들기: "Rounds", "Plays"
 
    [Rounds 탭] 1행에 헤더, 2행부터 라운드 데이터
-   roundNumber | status | prizeLabel | winRate | winnerKeyringId | closedAt
-   1           | OPEN   | 음료 1개    | 0.15    |                 |
+   roundNumber | status | prizeLabel | winRate | winnerKeyringId | closedAt | winnerLimit
+   1           | OPEN   | 음료 1개    | 0.15    |                 |          | 1
 
    * status는 OPEN / CLOSED / COMING_SOON 중 하나만 적기
    * winRate는 0~1 사이 숫자 (0.15 = 15% 확률)
    * winnerKeyringId, closedAt은 당첨자가 나오면 자동으로 채워짐 (비워두기)
+   * winnerLimit: 이 라운드에서 몇 명까지 당첨시킬지 (보통 1, 두 명 뽑고 싶으면 2로)
+     비워두면 자동으로 1명으로 처리됨
    * 새 라운드를 열 땐 그냥 새 줄을 추가하고 status를 OPEN으로
 
    [Plays 탭] 1행에 헤더만 적어두기 (나머지는 자동 기록됨)
@@ -103,6 +105,20 @@ function logPlay_(roundNumber, keyringId, result) {
   sh.appendRow([roundNumber, keyringId, result.win, result.kind || '', result.at]);
 }
 
+/* 이 라운드에서 지금까지 몇 명이 당첨됐는지 세기 */
+function countWinners_(roundNumber) {
+  const sh = sheet_(SHEET_PLAYS);
+  const values = sh.getDataRange().getValues();
+  let count = 0;
+  for (let i = 1; i < values.length; i++) {
+    const row = values[i];
+    if (String(row[0]) === String(roundNumber) && (row[2] === true || row[2] === 'TRUE')) {
+      count++;
+    }
+  }
+  return count;
+}
+
 /* 실제 추첨 — 동시 접속에도 안전하도록 Lock으로 한 명씩 순서대로 처리 */
 function requestDraw_(keyringId, roundNumber) {
   const lock = LockService.getScriptLock();
@@ -115,12 +131,15 @@ function requestDraw_(keyringId, roundNumber) {
     const rIdx = findRoundRowIndex_(roundsSh, roundNumber);
     if (rIdx === -1) return { win: false, error: 'round not found' };
 
-    const rowVals = roundsSh.getRange(rIdx, 1, 1, 6).getValues()[0];
+    const rowVals = roundsSh.getRange(rIdx, 1, 1, 7).getValues()[0];
     const status = rowVals[1];
     const winRate = Number(rowVals[3]) || 0.15;
+    const winnerLimit = Number(rowVals[6]) || 1; // 비어있으면 1명
 
-    // 이미 다른 사람이 이 라운드를 가져갔으면(CLOSED) 무조건 LOSE
-    if (status !== 'OPEN') {
+    const winnersSoFar = countWinners_(roundNumber);
+
+    // 라운드가 닫혔거나, 이미 목표 인원만큼 당첨자가 다 나왔으면 무조건 LOSE
+    if (status !== 'OPEN' || winnersSoFar >= winnerLimit) {
       const result = { win: false, kind: 'LOSE', at: Date.now() };
       logPlay_(roundNumber, keyringId, result);
       return result;
@@ -131,9 +150,16 @@ function requestDraw_(keyringId, roundNumber) {
     logPlay_(roundNumber, keyringId, result);
 
     if (win) {
-      roundsSh.getRange(rIdx, 2).setValue('CLOSED');       // status
-      roundsSh.getRange(rIdx, 5).setValue(keyringId);       // winnerKeyringId
-      roundsSh.getRange(rIdx, 6).setValue(new Date());      // closedAt
+      const existingWinners = rowVals[4] ? String(rowVals[4]) : '';
+      const newWinners = existingWinners ? existingWinners + ',' + keyringId : String(keyringId);
+      roundsSh.getRange(rIdx, 5).setValue(newWinners); // winnerKeyringId (콤마로 여러 명 누적)
+
+      const newWinnerCount = winnersSoFar + 1;
+      if (newWinnerCount >= winnerLimit) {
+        roundsSh.getRange(rIdx, 2).setValue('CLOSED');   // 목표 인원 다 채웠으면 마감
+        roundsSh.getRange(rIdx, 6).setValue(new Date());
+      }
+      // 아직 목표 인원 안 채웠으면 status는 OPEN 그대로 유지 → 다음 사람도 계속 도전 가능
     }
 
     return result;

@@ -63,9 +63,9 @@
 1. 구글시트 새로 만들기
 2. 탭 2개 생성: `Rounds`, `Plays`
 3. `Rounds` 탭 1행에 헤더 입력:
-   `roundNumber | status | prizeLabel | winRate | winnerKeyringId | closedAt`
+   `roundNumber | status | prizeLabel | winRate | winnerKeyringId | closedAt | winnerLimit`
 4. 2행부터 라운드 데이터 입력, 예:
-   `1 | OPEN | 음료 1개 | 0.15 |  | `
+   `1 | OPEN | 음료 1개 | 0.15 |  |  | 1`
 5. `Plays` 탭 1행에 헤더만 입력: `roundNumber | keyringId | win | kind | at` (나머지는 자동 기록됨)
 6. 상단 메뉴 **확장 프로그램 → Apps Script**
 7. 기본 코드 지우고 `apps-script.gs.txt` 내용 전체 붙여넣기 → 저장
@@ -77,11 +77,13 @@
 
 - 새 상품이 생기면 `Rounds` 탭에 새 줄 추가하고 `status`를 `OPEN`으로
 - 이전 라운드는 신경 안 써도 돼요 — 시스템은 항상 **가장 마지막 줄**을 현재 라운드로 봐요
-- 누군가 당첨되면 `status`가 자동으로 `CLOSED`로 바뀌고 `winnerKeyringId`에 당첨자 번호가 기록돼요
+- `winnerLimit`에 이 라운드에서 몇 명을 뽑을지 적으세요 (보통 1, 두 명 뽑는 이벤트면 2)
+- 목표 인원만큼 당첨자가 나오면 `status`가 자동으로 `CLOSED`로 바뀌고, `winnerKeyringId`에 당첨자 번호들이 콤마로 쌓여요 (예: `12,47`)
+- 목표 인원에 아직 안 찼으면 라운드는 계속 `OPEN` 상태를 유지해서, 다음 사람도 계속 도전할 수 있어요
 - 당첨 확률은 `winRate` 칸 숫자로 조절 (0.15 = 15%)
 - 다음 라운드 미리 예고하고 싶으면 새 줄을 `COMING_SOON`으로 넣어두기
 
-`APPS_SCRIPT_URL`을 아직 안 채웠으면 자동으로 로컬 데모 모드(15% 고정 확률)로 동작하니, 시트 연동 전에도 테스트에는 문제없어요.
+`APPS_SCRIPT_URL`을 아직 안 채웠으면 자동으로 로컬 데모 모드(15% 고정 확률, 1명 기준)로 동작하니, 시트 연동 전에도 테스트에는 문제없어요.
 
 ## 5. (참고) 예전 룰렛 방식 — draw.html
 
