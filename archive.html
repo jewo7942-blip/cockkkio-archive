@@ -233,6 +233,13 @@
 const REPO_OWNER = "jewo7942-blip";
 const REPO_NAME  = "cockkkio-archive";
 const BRANCH     = "main";
+
+/* 사진이 많아질수록(수백 장) 폰 원본 그대로 불러오면 느려지니,
+   무료 이미지 CDN(wsrv.nl)으로 화면 크기에 맞게 리사이즈+압축해서 불러와요.
+   가입/설정 필요 없음. 한 번 처리된 사진은 전 세계에 캐싱까지 돼요. */
+function thumbUrl(rawUrl, width){
+  return `https://wsrv.nl/?url=${encodeURIComponent(rawUrl)}&w=${width}&q=75&output=webp`;
+}
 const PHOTOS_PATH = "assets/photos";
 const PAGE_SIZE = 24; // 한 번에 보여줄 사진 수 (더 보기 버튼으로 이어서 로드)
 
@@ -268,7 +275,7 @@ function appendCell(gridEl, item){
   const img = document.createElement('img');
   img.loading = 'lazy';
   img.alt = '';
-  img.src = item.src;
+  img.src = thumbUrl(item.src, 480);
 
   cell.appendChild(img);
   cell.addEventListener('click', () => openLightbox(item));
@@ -310,7 +317,7 @@ const lightbox = document.getElementById('lightbox');
 const lbImg = document.getElementById('lbImg');
 const lbCap = document.getElementById('lbCap');
 function openLightbox(item){
-  lbImg.src = item.src;
+  lbImg.src = thumbUrl(item.src, 1600);
   lbCap.textContent = '';
   lightbox.classList.add('open');
 }
