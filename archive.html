@@ -249,7 +249,7 @@
     <img id="lbImg" src="" alt="">
     <a class="lb-download" id="lbDownload" href="" download target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
-      원본 사진 저장
+      <span class="lb-download-label">원본 사진 저장</span>
     </a>
     <div class="lb-cap" id="lbCap"></div>
   </div>
@@ -368,14 +368,45 @@ const lightbox = document.getElementById('lightbox');
 const lbImg = document.getElementById('lbImg');
 const lbCap = document.getElementById('lbCap');
 const lbDownload = document.getElementById('lbDownload');
+const lbDownloadLabel = lbDownload.querySelector('.lb-download-label');
 function openLightbox(item){
   lbImg.src = thumbUrl(item.src, 1600);
   lbCap.textContent = '';
-  lbDownload.href = item.src; // 압축 안 된 원본 그대로
+  lbDownload.href = item.src; // 압축 안 된 원본 그대로 (JS 실패 시 fallback으로도 쓰임)
   lightbox.classList.add('open');
 }
 document.getElementById('lbClose').addEventListener('click', () => lightbox.classList.remove('open'));
 lightbox.addEventListener('click', (e) => { if(e.target === lightbox) lightbox.classList.remove('open'); });
+
+lbDownload.addEventListener('click', async (e) => {
+  const originalUrl = lbDownload.href;
+  if(!originalUrl) return;
+  e.preventDefault();
+
+  const originalLabel = lbDownloadLabel.textContent;
+  lbDownloadLabel.textContent = '다운로드 중...';
+
+  try{
+    const res = await fetch(originalUrl);
+    if(!res.ok) throw new Error('fetch failed');
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+
+    const filename = decodeURIComponent(originalUrl.split('/').pop().split('?')[0]) || 'photo.jpg';
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
+  }catch(err){
+    // 실패하면(네트워크 오류 등) 예전처럼 새 탭으로 열어서라도 저장 가능하게
+    window.open(originalUrl, '_blank', 'noopener');
+  }finally{
+    lbDownloadLabel.textContent = originalLabel;
+  }
+});
 
 loadPhotos();
 </script>
