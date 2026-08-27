@@ -99,17 +99,17 @@
 
   /* photo grid — masonry via CSS columns, natural photo proportions */
   .grid{
-    column-count:2;
-    column-gap:10px;
+    column-count:3;
+    column-gap:8px;
   }
-  @media (min-width:480px){ .grid{ column-count:3; } }
-  @media (min-width:820px){ .grid{ column-count:4; } }
+  @media (min-width:480px){ .grid{ column-count:4; } }
+  @media (min-width:820px){ .grid{ column-count:5; } }
   .grid.status-mode{ column-count:1; }
 
   .cell{
     display:block;
     break-inside:avoid;
-    margin-bottom:10px;
+    margin-bottom:8px;
     border-radius:10px;
     overflow:hidden;
     background:var(--card);
@@ -135,9 +135,16 @@
   }
   .grid-status svg{ width:24px; height:24px; opacity:.6; }
 
+  .load-more-row{
+    display:none;
+    justify-content:center;
+    gap:10px;
+    margin-top:18px;
+  }
+  .load-more-row.show{ display:flex; }
   .load-more{
-    display:block;
-    margin:18px auto 0;
+    display:inline-block;
+    margin:0;
     padding:12px 26px;
     border-radius:999px;
     border:1px solid var(--line);
@@ -147,6 +154,11 @@
     cursor:pointer;
   }
   .load-more:active{ transform:scale(.97); }
+  .load-more.secondary{
+    background:transparent;
+    border:1px solid rgba(198,255,77,0.4);
+    color:var(--accent);
+  }
 
   /* lightbox */
   #lightbox{
@@ -203,7 +215,10 @@
       <span class="tag">PHOTOS</span>
     </div>
     <div class="grid" data-group="photos"></div>
-    <button type="button" class="load-more" id="loadMoreBtn" style="display:none;">사진 더 보기</button>
+    <div class="load-more-row" id="loadMoreRow">
+      <button type="button" class="load-more" id="loadMoreBtn">사진 더 보기</button>
+      <button type="button" class="load-more secondary" id="loadAllBtn">전체 보기</button>
+    </div>
   </section>
 
 </main>
@@ -241,7 +256,7 @@ function thumbUrl(rawUrl, width){
   return `https://wsrv.nl/?url=${encodeURIComponent(rawUrl)}&w=${width}&q=75&output=webp`;
 }
 const PHOTOS_PATH = "assets/photos";
-const PAGE_SIZE = 24; // 한 번에 보여줄 사진 수 (더 보기 버튼으로 이어서 로드)
+const PAGE_SIZE = 36; // 한 번에 보여줄 사진 수 (더 보기 버튼으로 이어서 로드)
 
 const IMAGE_EXT = /\.(jpe?g|png|webp|heic|heif)$/i;
 
@@ -282,13 +297,29 @@ function appendCell(gridEl, item){
   gridEl.appendChild(cell);
 }
 
+function updateLoadMoreRow(){
+  const row = document.getElementById('loadMoreRow');
+  if(shownCount < allPhotos.length){
+    row.classList.add('show');
+  }else{
+    row.classList.remove('show');
+  }
+}
+
 function showMore(){
   const gridEl = document.querySelector('.grid[data-group="photos"]');
-  const moreBtn = document.getElementById('loadMoreBtn');
   const next = allPhotos.slice(shownCount, shownCount + PAGE_SIZE);
   next.forEach(item => appendCell(gridEl, item));
   shownCount += next.length;
-  moreBtn.style.display = (shownCount < allPhotos.length) ? 'block' : 'none';
+  updateLoadMoreRow();
+}
+
+function showAll(){
+  const gridEl = document.querySelector('.grid[data-group="photos"]');
+  const rest = allPhotos.slice(shownCount);
+  rest.forEach(item => appendCell(gridEl, item));
+  shownCount = allPhotos.length;
+  updateLoadMoreRow();
 }
 
 async function loadPhotos(){
@@ -312,6 +343,7 @@ async function loadPhotos(){
 }
 
 document.getElementById('loadMoreBtn').addEventListener('click', showMore);
+document.getElementById('loadAllBtn').addEventListener('click', showAll);
 
 const lightbox = document.getElementById('lightbox');
 const lbImg = document.getElementById('lbImg');
